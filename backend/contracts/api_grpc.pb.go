@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MyHelloService_Hello_FullMethodName = "/MyHelloService/Hello"
+	MyHelloService_Hello_FullMethodName       = "/MyHelloService/Hello"
+	MyHelloService_HelloStream_FullMethodName = "/MyHelloService/HelloStream"
 )
 
 // MyHelloServiceClient is the client API for MyHelloService service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MyHelloServiceClient interface {
 	Hello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error)
+	HelloStream(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[HelloResponse], error)
 }
 
 type myHelloServiceClient struct {
@@ -47,11 +49,31 @@ func (c *myHelloServiceClient) Hello(ctx context.Context, in *HelloRequest, opts
 	return out, nil
 }
 
+func (c *myHelloServiceClient) HelloStream(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[HelloResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &MyHelloService_ServiceDesc.Streams[0], MyHelloService_HelloStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[HelloRequest, HelloResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MyHelloService_HelloStreamClient = grpc.ServerStreamingClient[HelloResponse]
+
 // MyHelloServiceServer is the server API for MyHelloService service.
 // All implementations must embed UnimplementedMyHelloServiceServer
 // for forward compatibility.
 type MyHelloServiceServer interface {
 	Hello(context.Context, *HelloRequest) (*HelloResponse, error)
+	HelloStream(*HelloRequest, grpc.ServerStreamingServer[HelloResponse]) error
 	mustEmbedUnimplementedMyHelloServiceServer()
 }
 
@@ -64,6 +86,9 @@ type UnimplementedMyHelloServiceServer struct{}
 
 func (UnimplementedMyHelloServiceServer) Hello(context.Context, *HelloRequest) (*HelloResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Hello not implemented")
+}
+func (UnimplementedMyHelloServiceServer) HelloStream(*HelloRequest, grpc.ServerStreamingServer[HelloResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method HelloStream not implemented")
 }
 func (UnimplementedMyHelloServiceServer) mustEmbedUnimplementedMyHelloServiceServer() {}
 func (UnimplementedMyHelloServiceServer) testEmbeddedByValue()                        {}
@@ -104,6 +129,17 @@ func _MyHelloService_Hello_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MyHelloService_HelloStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(HelloRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(MyHelloServiceServer).HelloStream(m, &grpc.GenericServerStream[HelloRequest, HelloResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MyHelloService_HelloStreamServer = grpc.ServerStreamingServer[HelloResponse]
+
 // MyHelloService_ServiceDesc is the grpc.ServiceDesc for MyHelloService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -116,6 +152,12 @@ var MyHelloService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _MyHelloService_Hello_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "HelloStream",
+			Handler:       _MyHelloService_HelloStream_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "contracts/api.proto",
 }

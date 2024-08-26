@@ -4,6 +4,7 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { MyHelloService } from "./api";
+import type { ServerStreamingCall } from "@protobuf-ts/runtime-rpc";
 import { stackIntercept } from "@protobuf-ts/runtime-rpc";
 import type { HelloResponse } from "./api";
 import type { HelloRequest } from "./api";
@@ -17,6 +18,10 @@ export interface IMyHelloServiceClient {
      * @generated from protobuf rpc: Hello(HelloRequest) returns (HelloResponse);
      */
     hello(input: HelloRequest, options?: RpcOptions): UnaryCall<HelloRequest, HelloResponse>;
+    /**
+     * @generated from protobuf rpc: HelloStream(HelloRequest) returns (stream HelloResponse);
+     */
+    helloStream(input: HelloRequest, options?: RpcOptions): ServerStreamingCall<HelloRequest, HelloResponse>;
 }
 /**
  * @generated from protobuf service MyHelloService
@@ -33,5 +38,12 @@ export class MyHelloServiceClient implements IMyHelloServiceClient, ServiceInfo 
     hello(input: HelloRequest, options?: RpcOptions): UnaryCall<HelloRequest, HelloResponse> {
         const method = this.methods[0], opt = this._transport.mergeOptions(options);
         return stackIntercept<HelloRequest, HelloResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: HelloStream(HelloRequest) returns (stream HelloResponse);
+     */
+    helloStream(input: HelloRequest, options?: RpcOptions): ServerStreamingCall<HelloRequest, HelloResponse> {
+        const method = this.methods[1], opt = this._transport.mergeOptions(options);
+        return stackIntercept<HelloRequest, HelloResponse>("serverStreaming", this._transport, method, opt, input);
     }
 }

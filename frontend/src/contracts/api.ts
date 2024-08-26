@@ -64,5 +64,6 @@ export const HelloResponse = new HelloResponse$Type();
  * @generated ServiceType for protobuf service MyHelloService
  */
 export const MyHelloService = new ServiceType("MyHelloService", [
-    { name: "Hello", options: {}, I: HelloRequest, O: HelloResponse }
+    { name: "Hello", options: {}, I: HelloRequest, O: HelloResponse },
+    { name: "HelloStream", serverStreaming: true, options: {}, I: HelloRequest, O: HelloResponse }
 ]);

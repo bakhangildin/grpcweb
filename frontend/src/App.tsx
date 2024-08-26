@@ -1,5 +1,5 @@
 import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport";
-import { Component } from "solid-js";
+import { Component, onMount } from "solid-js";
 import { MyHelloServiceClient } from "./contracts/api.client";
 import { HelloRequest } from "./contracts/api";
 
@@ -31,6 +31,21 @@ const App: Component = () => {
       result.innerHTML = `${e}`;
     }
   }
+
+  onMount(async () => {
+    const r = cl.helloStream(
+      HelloRequest.create({
+        myName: "test-name",
+        myAge: 12,
+      }),
+    );
+    r.responses.onMessage((r) => {
+      console.log("got message", r.serverUnixTimeStr, r.responseText);
+    });
+    r.responses.onError((e) => {
+      console.log("error happened", e.message);
+    });
+  });
 
   return (
     <form onSubmit={handleSubmit} autocomplete="off">

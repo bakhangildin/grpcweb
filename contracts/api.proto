@@ -15,4 +15,5 @@ message HelloResponse {
 
 service MyHelloService {
 	rpc Hello(HelloRequest) returns (HelloResponse);
+	rpc HelloStream(HelloRequest) returns (stream HelloResponse);
 }

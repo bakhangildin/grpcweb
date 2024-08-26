@@ -29,6 +29,37 @@ func (s *MyHelloService) Hello(ctx context.Context, in *contracts.HelloRequest) 
 	return out, nil
 }
 
+func (s *MyHelloService) HelloStream(in *contracts.HelloRequest, stream grpc.ServerStreamingServer[contracts.HelloResponse]) error {
+	i := 0
+	n := 10
+	t := time.NewTicker(time.Second)
+	for {
+		select {
+		case <-t.C:
+			i++
+			if i >= n {
+				fmt.Println("no iters left")
+				return nil
+			}
+			if i == 4 {
+				return fmt.Errorf("i == %d", i)
+			}
+			now := time.Now().UTC()
+			if err := stream.Send(&contracts.HelloResponse{
+				ResponseText:      fmt.Sprintf("Hello from server '%s' your age is %d", in.GetMyName(), in.GetMyAge()),
+				ServerUnixTimeI:   int32(now.Unix()),
+				ServerUnixTimeStr: now.Format(time.DateTime),
+			}); err != nil {
+				fmt.Println("send error", err)
+				return err
+			}
+		case <-stream.Context().Done():
+			fmt.Println("context cancelled")
+			return nil
+		}
+	}
+}
+
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Access-Control-Allow-Origin", r.Header.Get("Origin"))
